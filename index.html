@@ -990,6 +990,8 @@
       padding: 28px 32px;
       border-left: 3px solid var(--accent-primary);
       transition: var(--transition);
+      min-width: 0;
+      overflow-wrap: break-word;
     }
 
     .exp-card:hover { transform: translateX(4px); }
@@ -1326,6 +1328,7 @@
       .footer-quote { display: none; }
       .about-stats { grid-template-columns: 1fr 1fr; max-width: 100%; }
       .timeline { padding-left: 24px; }
+      .exp-card { padding: 20px 16px; }
     }
 
     @media (max-width: 480px) {
@@ -1334,6 +1337,8 @@
       .avatar-container { width: 200px; height: 200px; }
       .floating-icons { display: none; }
       .certs-grid { grid-template-columns: 1fr; }
+      .timeline { padding-left: 20px; }
+      .exp-card { padding: 16px 12px; }
     }
 
     @media (prefers-reduced-motion: reduce) {
