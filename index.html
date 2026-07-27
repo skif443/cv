@@ -9,15 +9,22 @@
   <meta property="og:description" content="Building platforms for automated IT infrastructure management." />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://cv.mshimkiv.com/" />
-  <meta property="og:image" content="https://cv.mshimkiv.com/images/avatar-dark.webp" />
+  <meta property="og:image" content="https://cv.mshimkiv.com/images/og-card.jpg" />
+  <meta property="og:image:type" content="image/jpeg" />
+  <meta property="og:image:alt" content="Mikhail Shimkiv — Infrastructure Automation Engineer" />
+  <meta name="twitter:card" content="summary_large_image" />
   <link rel="icon" type="image/svg+xml" href="favicon.svg" />
 
   <!-- Theme FOUC prevention — must run before CSS paints -->
   <script>
     (function() {
-      var saved = localStorage.getItem('theme');
+      var root = document.documentElement;
+      /* Marks that scripting is alive; CSS keeps content visible without it. */
+      root.classList.add('js');
+      var saved = null;
+      try { saved = localStorage.getItem('theme'); } catch (e) { /* storage blocked */ }
       var system = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
-      document.documentElement.setAttribute('data-theme', saved || system);
+      root.setAttribute('data-theme', saved || system);
     })();
   </script>
 
@@ -30,11 +37,19 @@
 
   <!-- AOS-like scroll animations (native) -->
 
+  <!-- Icon fonts — loaded non-blocking: no icon is part of the critical layout -->
   <!-- Font Awesome 6 -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+        media="print" onload="this.media='all';this.onload=null;" />
 
   <!-- Devicons -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/devicons/devicon@v2.15.1/devicon.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/devicons/devicon@v2.15.1/devicon.min.css"
+        media="print" onload="this.media='all';this.onload=null;" />
+
+  <noscript>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/devicons/devicon@v2.15.1/devicon.min.css" />
+  </noscript>
 
   <style>
     /* =============================================
@@ -52,7 +67,8 @@
 
       --text-primary:   #f0f4ff;
       --text-secondary: #94a3b8;
-      --text-muted:     #475569;
+      /* 5.3:1 on the glass card — #475569 was 2.4:1 and failed AA for all small metadata */
+      --text-muted:     #7d8ba1;
 
       --border-glass:   rgba(255, 255, 255, 0.07);
       --border-accent:  rgba(0, 212, 255, 0.25);
@@ -94,6 +110,14 @@
     ul { list-style: none; }
     img { display: block; max-width: 100%; }
     button { cursor: pointer; border: none; background: none; font: inherit; }
+
+    /* Reserve space for icon glyphs so the deferred icon fonts cause no layout shift.
+       Rules further down (.cert-icon, .skill-icon, …) still override display/size. */
+    .fa-solid, .fa-brands, .fa-regular, [class*="devicon-"] {
+      display: inline-block;
+      min-width: 1em;
+      min-height: 1em;
+    }
 
     /* =============================================
        AURORA BACKGROUND
@@ -139,6 +163,13 @@
     @keyframes blob-float-3 {
       0%   { transform: translate(0, 0) scale(1); }
       100% { transform: translate(-50px, 80px) scale(1.15); }
+    }
+
+    /* The blobs are position:fixed, so they never leave the screen and their motion forces
+       the navbar and every visible .glass-card to re-composite their backdrop-filter on
+       every frame. Hold them still on touch/small screens, where that costs the most. */
+    @media (hover: none), (max-width: 768px) {
+      .aurora-blob { animation: none; will-change: auto; }
     }
 
     /* =============================================
@@ -263,6 +294,10 @@
       transition: var(--transition);
     }
 
+    /* Scroll shadow lives in CSS so it can have a light-theme value — it used to be an
+       inline style hardcoded to rgba(0,0,0,0.3), unoverridable by any author rule. */
+    #navbar.scrolled { box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3); }
+
     .nav-logo {
       font-family: var(--font-display);
       font-size: 1.25rem;
@@ -344,14 +379,21 @@
     #mobile-menu {
       position: fixed;
       inset: 0;
-      z-index: 99;
+      /* Above #navbar (100) — otherwise the fixed navbar paints over the close button
+         and swallows its taps. Below .skip-link (200). */
+      z-index: 101;
       background: rgba(5, 10, 20, 0.97);
       backdrop-filter: blur(20px);
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
+      /* flex-start + scrolling: centering pushes the first/last link out of reach on
+         short viewports (landscape phones), and body scrolling is locked while open. */
+      justify-content: flex-start;
       gap: 40px;
+      padding: 88px 24px 40px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
       opacity: 0;
       visibility: hidden;
       transition: opacity 0.3s ease, visibility 0.3s ease;
@@ -371,6 +413,11 @@
     }
 
     #mobile-menu a:hover { color: var(--accent-primary); }
+
+    /* Auto margins keep the links optically centred when there is spare height, and
+       collapse to 0 when the list overflows so nothing is pushed off-screen. */
+    #mobile-menu a:first-of-type { margin-top: auto; }
+    #mobile-menu a:last-of-type  { margin-bottom: auto; }
 
     .mobile-close {
       position: absolute;
@@ -741,7 +788,14 @@
     }
 
     .scroll-indicator.visible { opacity: 1; }
-    .scroll-indicator.hidden  { opacity: 0; }
+    /* visibility takes it out of the tab order and hit-testing once faded — the explicit
+       transition cancels the base rule's 2s delay, which kept it clickable for ~2.6s. */
+    .scroll-indicator.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity 0.6s ease, visibility 0s linear 0.6s;
+    }
     .scroll-indicator { cursor: pointer; }
 
     .scroll-indicator i { animation: bounce 2s ease-in-out infinite; }
@@ -787,7 +841,9 @@
       overflow: hidden;
       font-family: var(--font-mono);
       font-size: 0.82rem;
-      min-width: 280px;
+      /* 280px overflowed the 272px content box at 320px wide; body{overflow-x:hidden}
+         then silently clipped the card instead of showing it. */
+      min-width: 0;
     }
 
     .term-header {
@@ -859,41 +915,8 @@
     /* =============================================
        SKILLS SECTION
     ============================================= */
-    .skills-tabs {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin-bottom: 36px;
-    }
-
-    .skill-tab {
-      font-family: var(--font-mono);
-      font-size: 0.78rem;
-      padding: 8px 18px;
-      border-radius: var(--radius-full);
-      border: 1px solid var(--border-glass);
-      color: var(--text-muted);
-      background: var(--bg-card);
-      cursor: pointer;
-      transition: var(--transition);
-      letter-spacing: 0.04em;
-    }
-
-    .skill-tab:hover {
-      border-color: var(--border-accent);
-      color: var(--text-secondary);
-    }
-
-    .skill-tab.active {
-      border-color: var(--accent-primary);
-      color: var(--accent-primary);
-      background: rgba(0,212,255,0.08);
-    }
-
-    .skills-panel { display: none; }
-    .skills-panel.active { display: grid; }
-
     .skills-grid {
+      display: grid;
       grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
       gap: 16px;
     }
@@ -945,16 +968,39 @@
     ============================================= */
     .timeline {
       position: relative;
-      padding-left: 32px;
+      /* --rail is the whole left gutter (year column + rail), --dot-x is the centre line
+         the rail and every dot share. Both scale per breakpoint so nothing drifts apart
+         — the dot used to be pinned to -29px and fell off the rail below 768px. */
+      --rail: 92px;
+      --dot-x: 60px;
+      padding-left: var(--rail);
     }
 
     .timeline::before {
       content: '';
       position: absolute;
-      left: 7px; top: 8px; bottom: 0;
+      left: calc(var(--dot-x) - 0.5px); top: 8px; bottom: 0;
       width: 1px;
       background: linear-gradient(to bottom, var(--accent-primary), var(--accent-secondary), transparent);
     }
+
+    /* Start year beside each dot. Decorative duplicate of .exp-date, which already
+       announces the full range — hence aria-hidden in the markup. */
+    .timeline-year {
+      position: absolute;
+      left: calc(-1 * var(--rail));
+      top: 21px;
+      width: calc(var(--dot-x) - 18px);
+      text-align: right;
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      font-weight: 500;
+      line-height: 1;
+      white-space: nowrap;
+      color: var(--accent-primary);
+    }
+
+    .timeline-item:nth-child(even) .timeline-year { color: var(--accent-secondary); }
 
     .timeline-item {
       position: relative;
@@ -965,7 +1011,7 @@
 
     .timeline-dot {
       position: absolute;
-      left: -29px; top: 20px;
+      left: calc(-1 * var(--rail) + var(--dot-x) - 7px); top: 20px;
       width: 14px; height: 14px;
       border-radius: 50%;
       background: var(--accent-primary);
@@ -1035,11 +1081,14 @@
     .exp-title {
       font-family: var(--font-mono);
       font-size: 0.88rem;
+      /* Explicit: the element is an <h4> for the rotor, so the UA bold must be undone. */
+      font-weight: 400;
       color: var(--accent-primary);
       margin-bottom: 16px;
     }
 
-    .timeline-item:nth-child(even) .exp-title { color: #a78bfa; }
+    /* Token, not a literal — #a78bfa had no light-theme value and fell to ~2.65:1 there. */
+    .timeline-item:nth-child(even) .exp-title { color: var(--accent-secondary); }
 
     .exp-list {
       display: flex;
@@ -1048,9 +1097,12 @@
       margin-bottom: 20px;
     }
 
+    /* Not display:flex — that turned every inline child (<strong>) and the text around
+       it into separate flex items, so bullets containing bold text broke into columns.
+       A hanging indent gives the same look and keeps the content as normal inline flow. */
     .exp-list li {
-      display: flex;
-      gap: 10px;
+      position: relative;
+      padding-left: 20px;
       color: var(--text-secondary);
       font-size: 0.92rem;
       line-height: 1.6;
@@ -1058,12 +1110,13 @@
 
     .exp-list li::before {
       content: '▸';
+      position: absolute;
+      left: 0;
+      top: 0;
       color: var(--accent-primary);
-      flex-shrink: 0;
-      margin-top: 1px;
     }
 
-    .timeline-item:nth-child(even) .exp-list li::before { color: #a78bfa; }
+    .timeline-item:nth-child(even) .exp-list li::before { color: var(--accent-secondary); }
 
     .exp-tags {
       display: flex;
@@ -1103,14 +1156,10 @@
       position: absolute;
       top: 0; left: 0; right: 0;
       height: 3px;
+      /* The cards set --cert-accent inline; without this the accent bar had no
+         background at all and every card rendered identically. */
+      background: var(--cert-accent, var(--accent-primary));
     }
-
-    .cert-card.aws::before   { background: linear-gradient(90deg, #FF9900, #FFB84D); }
-    .cert-card.k8s::before   { background: linear-gradient(90deg, #326CE5, #5B8EF3); }
-    .cert-card.gcp::before   { background: linear-gradient(90deg, #4285F4, #34A853); }
-    .cert-card.hashi::before { background: linear-gradient(90deg, #7B42BC, #A274DB); }
-    .cert-card.linux::before { background: linear-gradient(90deg, #FCC624, #FFE166); }
-    .cert-card.gitlab::before { background: linear-gradient(90deg, #FC6D26, #FF8C52); }
 
     .cert-icon {
       font-size: 2.4rem;
@@ -1327,7 +1376,8 @@
       footer { flex-direction: column; text-align: center; }
       .footer-quote { display: none; }
       .about-stats { grid-template-columns: 1fr 1fr; max-width: 100%; }
-      .timeline { padding-left: 24px; }
+      .timeline { --rail: 76px; --dot-x: 50px; }
+      .timeline-year { font-size: 0.72rem; }
       .exp-card { padding: 20px 16px; }
     }
 
@@ -1337,8 +1387,17 @@
       .avatar-container { width: 200px; height: 200px; }
       .floating-icons { display: none; }
       .certs-grid { grid-template-columns: 1fr; }
-      .timeline { padding-left: 20px; }
+      /* Below 480px the gutter would eat too much card width; the full date range is
+         already in the card header, so drop the year column and go compact. */
+      .timeline { --rail: 20px; --dot-x: 10px; }
+      .timeline-year { display: none; }
       .exp-card { padding: 16px 12px; }
+    }
+
+    /* Landscape phones: the 5 links at 1.8rem no longer fit the viewport height. */
+    @media (max-height: 480px) {
+      #mobile-menu { gap: 20px; padding-top: 72px; }
+      #mobile-menu a { font-size: 1.3rem; line-height: 1.4; }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -1346,7 +1405,9 @@
         animation-duration: 0.01ms !important;
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
       }
+      html { scroll-behavior: auto !important; }
       .hero-name { animation: none; background-position: 0 center; }
     }
 
@@ -1433,7 +1494,8 @@
       --bg-card:        rgba(255, 255, 255, 0.70);
       --bg-card-hover:  rgba(255, 255, 255, 0.95);
 
-      --accent-primary:   #0095b6;
+      /* 5.9:1 as text and as a button background — #0095b6 was 3.3:1 and failed AA */
+      --accent-primary:   #00697f;
       --accent-secondary: #6d28d9;
       --accent-green:     #047857;
 
@@ -1484,10 +1546,6 @@
       background: rgba(0, 149, 182, 0.08);
     }
 
-    [data-theme="light"] .skill-tab.active {
-      background: rgba(0, 149, 182, 0.08);
-    }
-
     [data-theme="light"] .exp-tag {
       background: rgba(0, 0, 0, 0.04);
     }
@@ -1502,6 +1560,19 @@
 
     [data-theme="light"] footer {
       border-top-color: rgba(0, 0, 0, 0.08);
+    }
+
+    /* The h1 clips a hardcoded dark-theme gradient with -webkit-text-fill-color:transparent,
+       so there is no fallback colour: on the light background it dropped to ~1.65:1.
+       Both stops must stay dark — the shimmer animation slides every stop across the glyphs. */
+    [data-theme="light"] .hero-name {
+      /* background-image, NOT the `background` shorthand: the shorthand would reset
+         background-clip to border-box and paint a solid rectangle over the glyphs. */
+      background-image: linear-gradient(135deg, #0077a3 0%, #5b21b6 40%, #0077a3 80%);
+    }
+
+    [data-theme="light"] #navbar.scrolled {
+      box-shadow: 0 4px 24px rgba(15, 23, 42, 0.10);
     }
 
     .skip-link {
@@ -1521,6 +1592,9 @@
     .skip-link:focus {
       top: 12px;
     }
+
+    /* #hero carries tabindex="-1" purely so the skip link can move focus there. */
+    #hero:focus { outline: none; }
 
     .ibm-text-logo {
       display: inline-flex;
@@ -1547,6 +1621,90 @@
       transform: none;
     }
 
+    /* =============================================
+       NO-JS / SCRIPT-FAILURE FALLBACK
+       Everything above hides itself with opacity:0 and waits for a class that only JS
+       adds. The head script sets html.js before anything can throw, so if scripting is
+       off — or dies — the CV is still fully readable instead of a blank page.
+    ============================================= */
+    html:not(.js) [data-aos],
+    html:not(.js) .hero-badge,
+    html:not(.js) .hero-name,
+    html:not(.js) .hero-title-wrap,
+    html:not(.js) .hero-bio,
+    html:not(.js) .hero-ctas,
+    html:not(.js) .hero-socials,
+    html:not(.js) .hero-visual,
+    html:not(.js) .scroll-indicator {
+      opacity: 1;
+      transform: none;
+    }
+
+    /* The typewriter span ships empty; without JS the subtitle would be blank. */
+    html:not(.js) #typewriter-text::before { content: 'Infrastructure Automation Engineer'; }
+    html:not(.js) .cursor { display: none; }
+
+    /* =============================================
+       PRINT — this CV gets saved as a PDF
+       Without this, [data-aos] sections never un-hide (the observer only fires for the
+       screen viewport), the dark palette prints light-on-white because browsers drop
+       background graphics by default, and the gradient-clipped name prints invisible.
+    ============================================= */
+    @media print {
+      :root,
+      [data-theme="light"],
+      [data-theme="dark"] {
+        --bg-primary: #fff;
+        --bg-secondary: #fff;
+        --bg-card: transparent;
+        --bg-card-hover: transparent;
+        --text-primary: #000;
+        --text-secondary: #222;
+        --text-muted: #444;
+        --accent-primary: #005f73;
+        --accent-secondary: #4c1d95;
+        --accent-green: #065f46;
+        --border-glass: #bbb;
+        --border-accent: #bbb;
+      }
+
+      html, body { background: #fff !important; color: #000 !important; }
+
+      [data-aos],
+      .hero-badge, .hero-name, .hero-title-wrap, .hero-bio,
+      .hero-ctas, .hero-socials, .hero-visual {
+        opacity: 1 !important;
+        transform: none !important;
+        animation: none !important;
+        transition: none !important;
+      }
+
+      /* Both clip a background-image through transparent text fill — no fallback colour. */
+      .hero-name, .contact-heading, .nav-logo {
+        background: none !important;
+        -webkit-background-clip: border-box !important;
+        background-clip: border-box !important;
+        -webkit-text-fill-color: #000 !important;
+        color: #000 !important;
+      }
+
+      #navbar, #mobile-menu, .aurora-blob, .scroll-indicator,
+      .theme-toggle, .nav-cta, .skip-link,
+      .cursor, .pulse-dot::before, .timeline-dot::after { display: none !important; }
+
+      /* Would print as a grey band whenever background graphics are enabled. */
+      .section--alt { background: none !important; }
+
+      #hero { min-height: auto !important; padding: 24px 0 !important; }
+      .section { padding: 24px 0 !important; }
+      .glass-card, .exp-card, .cert-card {
+        break-inside: avoid;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        box-shadow: none !important;
+      }
+    }
+
   </style>
 </head>
 
@@ -1566,7 +1724,7 @@
       <li><a href="#about">About</a></li>
       <li><a href="#skills">Skills</a></li>
       <li><a href="#experience">Experience</a></li>
-      <li><a href="#certifications">Certs</a></li>
+      <li><a href="#certifications">Education</a></li>
       <li><a href="#contact">Contact</a></li>
     </ul>
     <div class="nav-right">
@@ -1578,27 +1736,28 @@
         </span>
       </button>
       <a href="mailto:mshimkiv@gmail.com" class="nav-cta">Get in Touch</a>
-      <button class="nav-hamburger" id="menu-toggle" aria-label="Menu">
-        <i class="fa-solid fa-bars"></i>
+      <button class="nav-hamburger" id="menu-toggle" aria-label="Menu" aria-expanded="false" aria-controls="mobile-menu">
+        <i class="fa-solid fa-bars" aria-hidden="true"></i>
       </button>
     </div>
   </nav>
 
   <!-- Mobile Menu -->
-  <div id="mobile-menu">
+  <!-- div, not nav: `dialog` is not an allowed role override for <nav>. -->
+  <div id="mobile-menu" role="dialog" aria-modal="true" aria-label="Mobile navigation">
     <button class="mobile-close" id="menu-close" aria-label="Close menu">
-      <i class="fa-solid fa-xmark"></i>
+      <i class="fa-solid fa-xmark" aria-hidden="true"></i>
     </button>
     <a href="#about"         class="mobile-link">About</a>
     <a href="#skills"        class="mobile-link">Skills</a>
     <a href="#experience"    class="mobile-link">Experience</a>
-    <a href="#certifications" class="mobile-link">Certs</a>
+    <a href="#certifications" class="mobile-link">Education</a>
     <a href="#contact"       class="mobile-link">Contact</a>
   </div>
 
   <main>
     <!-- ==================== HERO ==================== -->
-    <section id="hero">
+    <section id="hero" tabindex="-1">
       <div class="container">
         <div class="hero-inner">
 
@@ -1647,18 +1806,31 @@
             <div class="avatar-container">
               <div class="avatar-ring"></div>
               <div class="avatar-inner">
-                <img src="./images/avatar-dark.webp" alt="Mikhail Shimkiv" class="avatar-photo" id="avatar-photo" loading="eager">
+                <!-- src is assigned below, before the preload scanner can fetch the wrong
+                     variant: a hardcoded src made every light-theme visitor download both. -->
+                <img alt="Mikhail Shimkiv" class="avatar-photo" id="avatar-photo" loading="eager" fetchpriority="high" width="533" height="800">
+                <script>
+                  (function() {
+                    var t = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+                    document.getElementById('avatar-photo').src = './images/avatar-' + t + '.webp';
+                  })();
+                </script>
+                <noscript>
+                  <img src="./images/avatar-dark.webp" alt="Mikhail Shimkiv" class="avatar-photo" width="533" height="800">
+                </noscript>
               </div>
-              <div class="floating-icons">
-                <div class="fi-wrap fi-1"><i class="floating-icon devicon-python-plain colored" title="Python"></i></div>
-                <div class="fi-wrap fi-2"><i class="floating-icon devicon-kubernetes-plain colored" title="Kubernetes"></i></div>
-                <div class="fi-wrap fi-3"><i class="floating-icon devicon-java-plain colored" title="Java"></i></div>
-                <div class="fi-wrap fi-4"><i class="floating-icon devicon-spring-plain colored" title="Spring"></i></div>
-                <div class="fi-wrap fi-5"><i class="floating-icon devicon-docker-plain colored" title="Docker"></i></div>
-                <div class="fi-wrap fi-6"><i class="floating-icon devicon-grafana-original colored" title="Grafana"></i></div>
-                <div class="fi-wrap fi-7"><i class="floating-icon devicon-ansible-plain colored" title="Ansible"></i></div>
-                <div class="fi-wrap fi-8"><i class="floating-icon devicon-django-plain-wordmark colored" title="Django"></i></div>
-                <div class="fi-wrap fi-9"><i class="floating-icon devicon-linux-plain colored" title="Linux"></i></div>
+              <!-- Decorative: every one of these technologies is real text in the Skills
+                   section, and `title` on an empty <i> becomes its accessible name. -->
+              <div class="floating-icons" aria-hidden="true">
+                <div class="fi-wrap fi-1"><i class="floating-icon devicon-python-plain colored"></i></div>
+                <div class="fi-wrap fi-2"><i class="floating-icon devicon-kubernetes-plain colored"></i></div>
+                <div class="fi-wrap fi-3"><i class="floating-icon devicon-java-plain colored"></i></div>
+                <div class="fi-wrap fi-4"><i class="floating-icon devicon-spring-plain colored"></i></div>
+                <div class="fi-wrap fi-5"><i class="floating-icon devicon-docker-plain colored"></i></div>
+                <div class="fi-wrap fi-6"><i class="floating-icon devicon-grafana-original colored"></i></div>
+                <div class="fi-wrap fi-7"><i class="floating-icon devicon-ansible-plain colored"></i></div>
+                <div class="fi-wrap fi-8"><i class="floating-icon devicon-django-plain-wordmark colored"></i></div>
+                <div class="fi-wrap fi-9"><i class="floating-icon devicon-linux-plain colored"></i></div>
               </div>
             </div>
           </div>
@@ -1739,15 +1911,7 @@
         <div class="section-label" data-aos="fade-up">// tech.stack</div>
         <h2 class="section-title" data-aos="fade-up" data-aos-delay="50">Skills &amp; Technologies</h2>
 
-        <div class="skills-tabs" data-aos="fade-up" data-aos-delay="100">
-          <button class="skill-tab active" data-tab="automation">Automation &amp; Infra</button>
-          <button class="skill-tab" data-tab="cicd">CI/CD Tools</button>
-          <button class="skill-tab" data-tab="languages">Programming</button>
-          <button class="skill-tab" data-tab="quality">Quality &amp; Testing</button>
-        </div>
-
-        <!-- Automation & Infra -->
-        <div class="skills-panel skills-grid active" id="tab-automation" data-aos="fade-up" data-aos-delay="150">
+        <div class="skills-grid" data-aos="fade-up" data-aos-delay="100">
           <div class="skill-card glass-card">
             <i class="skill-icon devicon-linux-plain colored"></i>
             <span class="skill-name">Linux</span>
@@ -1768,10 +1932,6 @@
             <i class="skill-icon fa-icon fa-solid fa-tower-broadcast" style="color:#CC0000"></i>
             <span class="skill-name">AWX</span>
           </div>
-        </div>
-
-        <!-- CI/CD Tools -->
-        <div class="skills-panel skills-grid" id="tab-cicd">
           <div class="skill-card glass-card">
             <i class="skill-icon fa-icon fa-solid fa-circle-play" style="color:#21D0B2"></i>
             <span class="skill-name">TeamCity</span>
@@ -1788,10 +1948,6 @@
             <i class="skill-icon devicon-gitlab-plain colored"></i>
             <span class="skill-name">GitLab</span>
           </div>
-        </div>
-
-        <!-- Programming -->
-        <div class="skills-panel skills-grid" id="tab-languages">
           <div class="skill-card glass-card">
             <i class="skill-icon devicon-python-plain colored"></i>
             <span class="skill-name">Python</span>
@@ -1812,10 +1968,6 @@
             <i class="skill-icon devicon-postgresql-plain colored"></i>
             <span class="skill-name">PostgreSQL</span>
           </div>
-        </div>
-
-        <!-- Quality & Testing -->
-        <div class="skills-panel skills-grid" id="tab-quality">
           <div class="skill-card glass-card">
             <i class="skill-icon fa-icon fa-solid fa-chart-column" style="color:#ee4e3f"></i>
             <span class="skill-name">Allure</span>
@@ -1851,12 +2003,13 @@
 
           <div class="timeline-item" data-aos="fade-up" data-aos-delay="100">
             <div class="timeline-dot"></div>
+            <div class="timeline-year" aria-hidden="true">2023</div>
             <div class="exp-card glass-card">
               <div class="exp-header">
-                <span class="exp-company">Astra Linux</span>
+                <h3 class="exp-company">Astra Linux</h3>
                 <span class="exp-date"><i class="fa-regular fa-calendar"></i> Jun 2023 — Present</span>
               </div>
-              <div class="exp-title">Infrastructure Automation Engineer</div>
+              <h4 class="exp-title">Infrastructure Automation Engineer</h4>
               <ul class="exp-list">
                 <li>Leading development of <strong>Astra Automation</strong> — a platform for automated IT infrastructure management on the Astra Linux ecosystem</li>
                 <li>Designing architecture and implementing automation workflows for enterprise Linux infrastructure deployments</li>
@@ -1875,12 +2028,13 @@
 
           <div class="timeline-item" data-aos="fade-up" data-aos-delay="150">
             <div class="timeline-dot"></div>
+            <div class="timeline-year" aria-hidden="true">2017</div>
             <div class="exp-card glass-card">
               <div class="exp-header">
-                <span class="exp-company">Deutsche Bank Technology Center</span>
+                <h3 class="exp-company">Deutsche Bank Technology Center</h3>
                 <span class="exp-date"><i class="fa-regular fa-calendar"></i> 2017 — 2023</span>
               </div>
-              <div class="exp-title">SDET · Assistant Vice President</div>
+              <h4 class="exp-title">SDET · Assistant Vice President</h4>
               <ul class="exp-list">
                 <li>Developed and maintained automated test frameworks for mission-critical banking technology systems</li>
                 <li>Drove quality engineering practices across software delivery pipelines in a large financial institution</li>
@@ -1899,12 +2053,13 @@
 
           <div class="timeline-item" data-aos="fade-up" data-aos-delay="200">
             <div class="timeline-dot"></div>
+            <div class="timeline-year" aria-hidden="true">2015</div>
             <div class="exp-card glass-card">
               <div class="exp-header">
-                <span class="exp-company">Acronis</span>
+                <h3 class="exp-company">Acronis</h3>
                 <span class="exp-date"><i class="fa-regular fa-calendar"></i> Feb 2015 — Jun 2017</span>
               </div>
-              <div class="exp-title">Automation QA Engineer</div>
+              <h4 class="exp-title">Automation QA Engineer</h4>
               <ul class="exp-list">
                 <li>Automated testing for Acronis Backup 12, 12.5, and Cloud backup/recovery solutions</li>
                 <li>Built and maintained automated test suites for enterprise-grade backup software</li>
@@ -1919,12 +2074,13 @@
 
           <div class="timeline-item" data-aos="fade-up" data-aos-delay="250">
             <div class="timeline-dot"></div>
+            <div class="timeline-year" aria-hidden="true">2015</div>
             <div class="exp-card glass-card">
               <div class="exp-header">
-                <span class="exp-company">IBM</span>
+                <h3 class="exp-company">IBM</h3>
                 <span class="exp-date"><i class="fa-regular fa-calendar"></i> Apr 2015 — Feb 2016</span>
               </div>
-              <div class="exp-title">Test Engineer — Mainframe</div>
+              <h4 class="exp-title">Test Engineer — Mainframe</h4>
               <ul class="exp-list">
                 <li>Mainframe testing on IBM z/OS platform including DFSMS SDM API verification</li>
                 <li>TSO/ISPF interface testing and JCL job control assessments</li>
@@ -1947,39 +2103,27 @@
     <!-- ==================== CERTIFICATIONS ==================== -->
     <section id="certifications" class="section">
       <div class="container">
-        <div class="section-label" data-aos="fade-up">// credentials</div>
-        <h2 class="section-title" data-aos="fade-up" data-aos-delay="50">Education &amp; Credentials</h2>
+        <div class="section-label" data-aos="fade-up">// education</div>
+        <h2 class="section-title" data-aos="fade-up" data-aos-delay="50">Academic Background</h2>
 
         <div class="certs-grid">
 
           <div class="cert-card glass-card" style="--cert-accent:#7c3aed" data-aos="zoom-in" data-aos-delay="50">
-            <i class="cert-icon fa-solid fa-graduation-cap" style="color:#a78bfa"></i>
-            <div class="cert-name">Specialist Degree with Honours — Cybernetics &amp; Information Security</div>
+            <i class="cert-icon fa-solid fa-graduation-cap" style="color:#a78bfa" aria-hidden="true"></i>
+            <h3 class="cert-name">Specialist Degree — Cybernetics &amp; Information Security</h3>
             <div class="cert-issuer">NRNU MEPhI · 2011–2016 · GPA 4.84/5</div>
           </div>
 
-          <div class="cert-card glass-card" style="--cert-accent:#7c3aed" data-aos="zoom-in" data-aos-delay="100">
-            <i class="cert-icon fa-solid fa-shield-halved" style="color:#a78bfa"></i>
-            <div class="cert-name">Interpreter Certificate — Information Security</div>
-            <div class="cert-issuer">NRNU MEPhI · 2016</div>
+          <div class="cert-card glass-card" style="--cert-accent:#10b981" data-aos="zoom-in" data-aos-delay="100">
+            <i class="cert-icon fa-solid fa-language" style="color:#10b981" aria-hidden="true"></i>
+            <h3 class="cert-name">English Upper Intermediate</h3>
+            <div class="cert-issuer">NRNU MEPhI · Skyeng</div>
           </div>
 
-          <div class="cert-card glass-card" style="--cert-accent:#10b981" data-aos="zoom-in" data-aos-delay="150">
-            <i class="cert-icon fa-solid fa-language" style="color:#10b981"></i>
-            <div class="cert-name">General English Upper Intermediate</div>
-            <div class="cert-issuer">Skyeng · September 2020</div>
-          </div>
-
-          <div class="cert-card glass-card" style="--cert-accent:#00d4ff" data-aos="zoom-in" data-aos-delay="200">
-            <i class="cert-icon fa-solid fa-file-alt" style="color:#00d4ff"></i>
-            <div class="cert-name">Special Digital Signature Schemes Based on GOST R 34.10-2012</div>
+          <div class="cert-card glass-card" style="--cert-accent:#00d4ff" data-aos="zoom-in" data-aos-delay="150">
+            <i class="cert-icon fa-solid fa-file-alt" style="color:#00d4ff" aria-hidden="true"></i>
+            <h3 class="cert-name">Research Special Digital Signature Schemes Based on GOST R 34.10-2012</h3>
             <div class="cert-issuer">IEEE / Scopus-indexed Publication · Feb 2016</div>
-          </div>
-
-          <div class="cert-card glass-card" style="--cert-accent:#00d4ff" data-aos="zoom-in" data-aos-delay="250">
-            <i class="cert-icon fa-solid fa-book-open" style="color:#00d4ff"></i>
-            <div class="cert-name">The Systematization of Blind Signature Schemes</div>
-            <div class="cert-issuer">Research Publication · May 2015</div>
           </div>
 
         </div>
@@ -1990,7 +2134,7 @@
     <section id="contact" class="section section--alt">
       <div class="container" style="text-align:center;">
         <div class="section-label" style="justify-content:center;" data-aos="fade-up">// get.in.touch</div>
-        <h2 class="contact-heading" data-aos="fade-up" data-aos-delay="50">Let's Build Something Amazing</h2>
+        <h2 class="contact-heading" data-aos="fade-up" data-aos-delay="50">Say Hello</h2>
         <p class="contact-sub" data-aos="fade-up" data-aos-delay="100">
           Open to interesting infrastructure and automation challenges, consulting engagements, and
           professional conversations. I typically respond within a day.
@@ -2006,7 +2150,7 @@
               <div class="contact-label">Email</div>
               <div class="contact-value">mshimkiv@gmail.com</div>
             </div>
-            <i class="contact-arrow fa-solid fa-arrow-right"></i>
+            <i class="contact-arrow fa-solid fa-arrow-right" aria-hidden="true"></i>
           </a>
 
           <a href="https://linkedin.com/in/mshimkiv" target="_blank" rel="noopener noreferrer" class="contact-card glass-card">
@@ -2017,7 +2161,7 @@
               <div class="contact-label">LinkedIn</div>
               <div class="contact-value">linkedin.com/in/mshimkiv</div>
             </div>
-            <i class="contact-arrow fa-solid fa-arrow-right"></i>
+            <i class="contact-arrow fa-solid fa-arrow-right" aria-hidden="true"></i>
           </a>
 
 
@@ -2029,7 +2173,7 @@
               <div class="contact-label">Telegram</div>
               <div class="contact-value">@mshimkiv</div>
             </div>
-            <i class="contact-arrow fa-solid fa-arrow-right"></i>
+            <i class="contact-arrow fa-solid fa-arrow-right" aria-hidden="true"></i>
           </a>
 
         </div>
@@ -2057,42 +2201,58 @@
   </footer>
 
 
+  <!-- Theme gets its own script element so a storage/matchMedia failure here can never
+       abort the main script below and leave the page stuck at opacity:0. -->
   <script>
-    // =============================================
-    // THEME TOGGLE
-    // =============================================
-    const htmlEl = document.documentElement;
-    const themeToggle = document.getElementById('theme-toggle');
-    const themeIcon = document.getElementById('theme-icon');
+    (function () {
+      const htmlEl = document.documentElement;
+      const themeToggle = document.getElementById('theme-toggle');
+      const themeIcon = document.getElementById('theme-icon');
 
-    function applyTheme(theme) {
-      htmlEl.setAttribute('data-theme', theme);
-      themeToggle.setAttribute('aria-checked', theme === 'light' ? 'true' : 'false');
-      themeIcon.className = theme === 'dark' ? 'fa-solid fa-moon' : 'fa-solid fa-sun';
-      const avatarPhoto = document.getElementById('avatar-photo');
-      if (avatarPhoto) avatarPhoto.src = theme === 'light' ? './images/avatar-light.webp' : './images/avatar-dark.webp';
-    }
-
-    function setTheme(theme) {
-      localStorage.setItem('theme', theme);
-      applyTheme(theme);
-    }
-
-    // Init: saved preference → system preference
-    const _savedTheme = localStorage.getItem('theme');
-    const _systemTheme = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
-    applyTheme(_savedTheme || _systemTheme);
-
-    themeToggle.addEventListener('click', () => {
-      setTheme(htmlEl.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
-    });
-
-    // Sync with OS preference changes (only when no saved preference)
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-      if (!localStorage.getItem('theme')) {
-        applyTheme(e.matches ? 'dark' : 'light');
+      // localStorage throws (SecurityError) when site data is blocked or in a sandboxed frame.
+      function readTheme() {
+        try { return localStorage.getItem('theme'); } catch (e) { return null; }
       }
-    });
+      function writeTheme(value) {
+        try { localStorage.setItem('theme', value); } catch (e) { /* non-fatal */ }
+      }
+
+      function applyTheme(theme) {
+        htmlEl.setAttribute('data-theme', theme);
+        if (themeToggle) themeToggle.setAttribute('aria-checked', theme === 'light' ? 'true' : 'false');
+        if (themeIcon) themeIcon.className = theme === 'dark' ? 'fa-solid fa-moon' : 'fa-solid fa-sun';
+        const avatarPhoto = document.getElementById('avatar-photo');
+        if (avatarPhoto) avatarPhoto.src = theme === 'light' ? './images/avatar-light.webp' : './images/avatar-dark.webp';
+      }
+
+      // Init: saved preference → system preference
+      const savedTheme = readTheme();
+      const systemTheme = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+      applyTheme(savedTheme || systemTheme);
+
+      if (themeToggle) {
+        themeToggle.addEventListener('click', () => {
+          const next = htmlEl.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+          writeTheme(next);
+          applyTheme(next);
+        });
+      }
+
+      // Sync with OS preference changes (only when no saved preference)
+      const schemeMq = window.matchMedia('(prefers-color-scheme: dark)');
+      const onSchemeChange = (e) => {
+        if (!readTheme()) applyTheme(e.matches ? 'dark' : 'light');
+      };
+      // addListener is the only form on Safari < 14.
+      if (schemeMq.addEventListener) schemeMq.addEventListener('change', onSchemeChange);
+      else if (schemeMq.addListener) schemeMq.addListener(onSchemeChange);
+    })();
+  </script>
+
+  <script>
+    // Honoured by the JS-driven motion below; the CSS half lives in the
+    // prefers-reduced-motion media query.
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     // =============================================
     // NATIVE SCROLL ANIMATIONS (replaces AOS)
@@ -2179,7 +2339,13 @@
       setTimeout(typeWriter, delay);
     }
 
-    setTimeout(typeWriter, 1200);
+    // Endless typing violates WCAG 2.2.2 under reduced motion — show the first title statically.
+    // The span ships empty, so skipping without this assignment leaves the subtitle blank.
+    if (prefersReducedMotion) {
+      if (typewriterEl) typewriterEl.textContent = titles[0];
+    } else {
+      setTimeout(typeWriter, 1200);
+    }
 
 
     // =============================================
@@ -2208,50 +2374,62 @@
     const mobileMenu  = document.getElementById('mobile-menu');
     const mobileLinks = document.querySelectorAll('.mobile-link');
 
-    function openMenu() {
-      mobileMenu.classList.add('open');
-      document.body.style.overflow = 'hidden';
-    }
+    if (mobileMenu) {
+      let lastFocused = null;
 
-    function closeMenu() {
-      mobileMenu.classList.remove('open');
-      document.body.style.overflow = '';
-    }
-
-    menuToggle?.addEventListener('click', openMenu);
-    menuClose?.addEventListener('click', closeMenu);
-    mobileLinks.forEach(link => link.addEventListener('click', closeMenu));
-
-    // =============================================
-    // SKILLS TABS
-    // =============================================
-    const tabs   = document.querySelectorAll('.skill-tab');
-    const panels = document.querySelectorAll('.skills-panel');
-
-    tabs.forEach(tab => {
-      tab.addEventListener('click', () => {
-        tabs.forEach(t => t.classList.remove('active'));
-        panels.forEach(p => p.classList.remove('active'));
-        tab.classList.add('active');
-        const target = document.getElementById('tab-' + tab.dataset.tab);
-        if (target) target.classList.add('active');
-      });
-    });
-
-    // =============================================
-    // SMOOTH SCROLL (fallback for older browsers)
-    // =============================================
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-      anchor.addEventListener('click', (e) => {
-        const href = anchor.getAttribute('href');
-        if (href === '#') return;
-        const target = document.querySelector(href);
-        if (target) {
-          e.preventDefault();
-          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // The overlay is a modal: Escape must close it and Tab must not walk into the
+      // page underneath, where the focus ring would be invisible behind the backdrop.
+      function onMenuKeydown(e) {
+        if (e.key === 'Escape') {
+          closeMenu();
+          return;
         }
-      });
-    });
+        if (e.key !== 'Tab') return;
+        const focusable = mobileMenu.querySelectorAll('button, a[href]');
+        if (!focusable.length) return;
+        const first = focusable[0];
+        const last  = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+
+      function openMenu() {
+        if (mobileMenu.classList.contains('open')) return;
+        lastFocused = document.activeElement;
+        mobileMenu.classList.add('open');
+        document.body.style.overflow = 'hidden';
+        menuToggle?.setAttribute('aria-expanded', 'true');
+        document.addEventListener('keydown', onMenuKeydown);
+        // Flush the style change: focus() is a no-op while the overlay is still
+        // computed as visibility:hidden.
+        void mobileMenu.offsetHeight;
+        menuClose?.focus();
+      }
+
+      function closeMenu(restoreFocus) {
+        if (!mobileMenu.classList.contains('open')) return;
+        mobileMenu.classList.remove('open');
+        document.body.style.overflow = '';
+        menuToggle?.setAttribute('aria-expanded', 'false');
+        document.removeEventListener('keydown', onMenuKeydown);
+        if (restoreFocus !== false) (lastFocused || menuToggle)?.focus();
+      }
+
+      menuToggle?.addEventListener('click', openMenu);
+      menuClose?.addEventListener('click', () => closeMenu(true));
+      // Following a link: leave focus with the fragment target, don't yank it back.
+      mobileLinks.forEach(link => link.addEventListener('click', () => closeMenu(false)));
+    }
+
+    // In-page links are left to native fragment navigation. The old handler called
+    // preventDefault() on every one of them, which killed the skip link (focus never
+    // moved), never updated location.hash or history, and ignored scroll-padding-top.
+    // `html { scroll-behavior: smooth; scroll-padding-top: 70px }` already covers it.
 
 
     // =============================================
@@ -2259,31 +2437,49 @@
     // =============================================
     const avatarEl = document.querySelector('.avatar-container');
 
-    if (window.matchMedia('(hover: hover)').matches && avatarEl) {
+    if (!prefersReducedMotion && window.matchMedia('(hover: hover)').matches && avatarEl) {
       let tX = 0, tY = 0, cX = 0, cY = 0;
       let parallaxActive = true;
+      // The old loop re-armed rAF unconditionally and the easing never converges, so it
+      // ran every frame for the life of the page — including while the hero was offscreen
+      // and doing no work at all. Now the loop is demand-driven and parks itself.
+      let running = false;
 
       const heroSection = document.getElementById('hero');
       const parallaxObserver = new IntersectionObserver(([entry]) => {
         parallaxActive = entry.isIntersecting;
+        // Without this the avatar would freeze permanently after the first scroll away.
+        if (parallaxActive) start();
       }, { threshold: 0 });
       if (heroSection) parallaxObserver.observe(heroSection);
 
+      function start() {
+        // The flag prevents rapid mousemoves from stacking concurrent rAF chains,
+        // which would run the easing at a multiple of the intended speed.
+        if (running) return;
+        running = true;
+        requestAnimationFrame(tick);
+      }
+
+      function tick() {
+        if (!parallaxActive || (Math.abs(tX - cX) < 0.05 && Math.abs(tY - cY) < 0.05)) {
+          running = false;
+          return;
+        }
+        cX += (tX - cX) * 0.055;
+        cY += (tY - cY) * 0.055;
+        avatarEl.style.transform = `translate(${cX.toFixed(2)}px, ${cY.toFixed(2)}px)`;
+        requestAnimationFrame(tick);
+      }
+
       document.addEventListener('mousemove', (e) => {
+        if (!parallaxActive) return;
         const dx = (e.clientX / window.innerWidth  - 0.5) * 2;
         const dy = (e.clientY / window.innerHeight - 0.5) * 2;
         tX = dx * 14;
         tY = dy * 8;
+        start();
       }, { passive: true });
-
-      (function tick() {
-        if (parallaxActive) {
-          cX += (tX - cX) * 0.055;
-          cY += (tY - cY) * 0.055;
-          avatarEl.style.transform = `translate(${cX.toFixed(2)}px, ${cY.toFixed(2)}px)`;
-        }
-        requestAnimationFrame(tick);
-      })();
     }
 
     // =============================================
@@ -2296,13 +2492,13 @@
     // NAVBAR SHADOW ON SCROLL
     // =============================================
     const navbar = document.getElementById('navbar');
-    window.addEventListener('scroll', () => {
-      if (window.scrollY > 20) {
-        navbar.style.boxShadow = '0 4px 24px rgba(0,0,0,0.3)';
-      } else {
-        navbar.style.boxShadow = 'none';
-      }
-    }, { passive: true });
+    if (navbar) {
+      // A class, not an inline style: the shadow now has a light-theme value in CSS,
+      // and toggle() writes nothing when the state is unchanged.
+      window.addEventListener('scroll', () => {
+        navbar.classList.toggle('scrolled', window.scrollY > 20);
+      }, { passive: true });
+    }
 
   </script>
 
